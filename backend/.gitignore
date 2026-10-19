@@ -1,0 +1,4 @@
+node_modules
+.env
+# o .gitignore da raiz ignora ".env*"; este arquivo precisa ir para o repositório
+!.env.example

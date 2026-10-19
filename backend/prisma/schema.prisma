@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// Valores em minúsculo para casar com os tipos do frontend (data/mockData.ts).
+enum DeviceType {
+  light
+  ac
+  tv
+  speaker
+  camera
+  lock
+  sensor
+  plug
+  fan
+  curtain
+  alarm
+}
+
+enum EventType {
+  door
+  camera
+  motion
+  alarm
+  system
+}
+
+enum EventStatus {
+  info
+  warning
+  success
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(USER)
+  environments Environment[]
+  events       Event[]
+}
+
+// "Cômodo" no frontend. `slug` é o id usado pelo filtro de cômodos (ex.: "living").
+model Environment {
+  id             String    @id @default(uuid())
+  slug           String
+  name           String
+  color          String    @default("#00e5a0")
+  lastPresenceAt DateTime? // RNE-001
+  ownerId        String
+  owner          User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  devices        Device[]
+
+  @@unique([ownerId, slug])
+}
+
+model Device {
+  id            String          @id @default(uuid())
+  name          String
+  type          DeviceType
+  isOn          Boolean         @default(false)
+  value         String? // texto exibido no card: "22°C", "Trancada", ...
+  environmentId String
+  environment   Environment     @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  events        Event[]
+  readings      EnergyReading[]
+
+  @@index([environmentId])
+}
+
+// Histórico de eventos (tela Security e atividade recente da Home).
+model Event {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId    String?
+  device      Device?     @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  type        EventType
+  status      EventStatus @default(info)
+  title       String
+  description String
+  createdAt   DateTime    @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model EnergyReading {
+  id         String   @id @default(uuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  kwh        Float
+  recordedAt DateTime @default(now())
+
+  @@index([recordedAt])
+}

@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: automate
+      POSTGRES_PASSWORD: automate
+      POSTGRES_DB: automate
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U automate"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://automate:automate@db:5432/automate
+      JWT_SECRET: dev-teste-1810
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:3000
+      AUTO_OFF_MINUTES: 5
+      TZ: America/Sao_Paulo
+    ports:
+      - "3001:3001"
+
+volumes:
+  pgdata:
