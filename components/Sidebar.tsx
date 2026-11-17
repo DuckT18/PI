@@ -9,7 +9,7 @@ import {
   EnergyIcon,
   SettingsIcon,
 } from "./icons";
-import { mockUser } from "@/data/mockData";
+import { useAuth } from "./AppShell";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
@@ -21,6 +21,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="sidebar">
@@ -78,16 +79,23 @@ export default function Sidebar() {
             color: "#0a0e1a",
           }}
         >
-          {mockUser.avatar}
+          {user?.avatar}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-white truncate">
-            {mockUser.name}
+            {user?.name}
           </p>
           <p className="text-xs truncate" style={{ color: "#64748b" }}>
-            {mockUser.role}
+            {user?.role}
           </p>
         </div>
+        <button
+          onClick={logout}
+          className="text-xs font-medium"
+          style={{ color: "#94a3b8" }}
+        >
+          Sair
+        </button>
       </div>
     </aside>
   );

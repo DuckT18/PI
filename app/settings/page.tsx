@@ -9,7 +9,10 @@ import {
   DevicesIcon,
   SettingsIcon,
 } from "@/components/icons";
-import { mockUser, rooms } from "@/data/mockData";
+import { useAuth } from "@/components/AppShell";
+import { Loading } from "@/components/State";
+import type { Room } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 interface SettingToggleProps {
   label: string;
@@ -36,6 +39,11 @@ function SettingToggle({ label, description, defaultOn = false }: SettingToggleP
 }
 
 export default function SettingsPage() {
+  const { user: profile } = useAuth();
+  const { data: rooms } = useApi<Room[]>("/rooms");
+
+  if (!profile || !rooms) return <Loading />;
+
   return (
     <div className="min-h-screen p-6 md:p-8">
       {/* Header */}
@@ -56,15 +64,15 @@ export default function SettingsPage() {
                 color: "#0a0e1a",
               }}
             >
-              {mockUser.avatar}
+              {profile.avatar}
             </div>
-            <h2 className="text-lg font-bold text-white">{mockUser.name}</h2>
-            <p className="text-sm" style={{ color: "#94a3b8" }}>{mockUser.email}</p>
+            <h2 className="text-lg font-bold text-white">{profile.name}</h2>
+            <p className="text-sm" style={{ color: "#94a3b8" }}>{profile.email}</p>
             <span
               className="inline-block mt-2 text-xs font-medium px-3 py-1 rounded-full"
               style={{ background: "rgba(0,229,160,0.1)", color: "#00e5a0" }}
             >
-              {mockUser.role}
+              {profile.role}
             </span>
           </div>
 

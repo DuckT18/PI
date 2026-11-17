@@ -7,14 +7,18 @@ import {
   TrendDownIcon,
   TipIcon,
 } from "@/components/icons";
-import {
-  weeklyEnergy,
-  energyByRoom,
-  energyStats,
-  energyTips,
-} from "@/data/mockData";
+import { ErrorState, Loading } from "@/components/State";
+import { energyTips } from "@/data/mockData";
+import type { EnergySummary } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 export default function EnergyPage() {
+  const { data, error, reload } = useApi<EnergySummary>("/energy");
+
+  if (error) return <ErrorState message={error} onRetry={reload} />;
+  if (!data) return <Loading />;
+
+  const { weekly: weeklyEnergy, byRoom: energyByRoom, stats: energyStats } = data;
   const savingsPercent = Math.round(
     ((energyStats.lastMonthKwh - energyStats.monthlyKwh) / energyStats.lastMonthKwh) * 100
   );

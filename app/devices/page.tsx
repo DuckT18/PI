@@ -3,11 +3,17 @@
 import { useState } from "react";
 import DeviceCard from "@/components/DeviceCard";
 import RoomFilter from "@/components/RoomFilter";
-import { devices as initialDevices, rooms } from "@/data/mockData";
+import { ErrorState, Loading } from "@/components/State";
+import { updateDevice, type Device, type Room } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 export default function DevicesPage() {
-  const [devices, setDevices] = useState(initialDevices);
+  const { data: devices, setData: setDevices, error, reload } = useApi<Device[]>("/devices");
+  const { data: rooms } = useApi<Room[]>("/rooms");
   const [activeRoom, setActiveRoom] = useState("all");
+
+  if (error) return <ErrorState message={error} onRetry={reload} />;
+  if (!devices || !rooms) return <Loading />;
 
   const filteredDevices =
     activeRoom === "all"
@@ -16,12 +22,11 @@ export default function DevicesPage() {
 
   const onlineCount = devices.filter((d) => d.isOn).length;
 
-  const toggleDevice = (id: string) => {
-    setDevices((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, isOn: !d.isOn, value: !d.isOn ? d.value : "Desl." } : d
-      )
-    );
+  const toggleDevice = async (id: string) => {
+    const current = devices.find((d) => d.id === id);
+    if (!current) return;
+    const updated = await updateDevice(id, !current.isOn).catch(() => null);
+    if (updated) setDevices((prev) => prev?.map((d) => (d.id === id ? updated : d)) ?? prev);
   };
 
   return (

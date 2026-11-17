@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import StatCard from "@/components/StatCard";
+import { useAuth } from "@/components/AppShell";
+import { ErrorState, Loading } from "@/components/State";
+import {
+  updateDevice,
+  type Activity,
+  type Device,
+  type EnergySummary,
+} from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 import DeviceCard from "@/components/DeviceCard";
 import BarChart from "@/components/BarChart";
 import { SimpleActivityLog } from "@/components/ActivityLog";
@@ -12,14 +20,6 @@ import {
   ThermometerIcon,
   BellIcon,
 } from "@/components/icons";
-import {
-  devices as initialDevices,
-  weeklyEnergy,
-  recentActivity,
-  mockUser,
-  energyStats,
-} from "@/data/mockData";
-
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Bom dia";
@@ -28,17 +28,25 @@ function getGreeting(): string {
 }
 
 export default function Home() {
-  const [devices, setDevices] = useState(initialDevices);
+  const { user } = useAuth();
+  const { data: devices, setData: setDevices, error, reload } = useApi<Device[]>("/devices");
+  const { data: energy } = useApi<EnergySummary>("/energy");
+  const { data: recentActivity, reload: reloadActivity } = useApi<Activity[]>("/activity");
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
+  if (!devices || !energy || !recentActivity) return <Loading />;
+
+  const { weekly: weeklyEnergy, stats: energyStats } = energy;
   const onlineCount = devices.filter((d) => d.isOn).length;
   const totalCount = devices.length;
 
-  const toggleDevice = (id: string) => {
-    setDevices((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, isOn: !d.isOn, value: !d.isOn ? d.value : "Desl." } : d
-      )
-    );
+  const toggleDevice = async (id: string) => {
+    const current = devices.find((d) => d.id === id);
+    if (!current) return;
+    const updated = await updateDevice(id, !current.isOn).catch(() => null);
+    if (!updated) return;
+    setDevices((prev) => prev?.map((d) => (d.id === id ? updated : d)) ?? prev);
+    reloadActivity();
   };
 
   // Favorites: first 4 devices
@@ -50,7 +58,7 @@ export default function Home() {
       <div className="flex items-center justify-between mb-8 opacity-0 animate-fade-in-up">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">
-            {getGreeting()}, {mockUser.name} 👋
+            {getGreeting()}, {user?.name} 👋
           </h1>
           <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>
             Todos os sistemas operacionais

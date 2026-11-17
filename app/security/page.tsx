@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import ToggleSwitch from "@/components/ToggleSwitch";
 import ActivityLog from "@/components/ActivityLog";
 import {
@@ -10,10 +9,9 @@ import {
   SensorIcon,
   AlarmIcon,
 } from "@/components/icons";
-import {
-  securityDevices as initialSecDevices,
-  securityEvents,
-} from "@/data/mockData";
+import { ErrorState, Loading } from "@/components/State";
+import { updateDevice, type SecuritySummary } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 function getSecurityIcon(type: string) {
   switch (type) {
@@ -36,17 +34,20 @@ function getTypeColor(type: string) {
 }
 
 export default function SecurityPage() {
-  const [secDevices, setSecDevices] = useState(initialSecDevices);
+  const { data, error, reload } = useApi<SecuritySummary>("/security");
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
+  if (!data) return <Loading />;
+
+  const { devices: secDevices, events: securityEvents } = data;
   const allActive = secDevices.every((d) => d.isActive);
   const activeCount = secDevices.filter((d) => d.isActive).length;
 
-  const toggleSecDevice = (id: string) => {
-    setSecDevices((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, isActive: !d.isActive } : d
-      )
-    );
+  const toggleSecDevice = async (id: string) => {
+    const current = secDevices.find((d) => d.id === id);
+    if (!current) return;
+    await updateDevice(id, !current.isActive).catch(() => null);
+    reload();
   };
 
   return (
