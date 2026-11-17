@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import DeviceCard from "@/components/DeviceCard";
+import { PlusIcon } from "@/components/icons";
 import RoomFilter from "@/components/RoomFilter";
 import { ErrorState, Loading } from "@/components/State";
 import { updateDevice, type Device, type Room } from "@/lib/api";
@@ -50,12 +51,27 @@ export default function DevicesPage() {
 
       {/* Devices Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <button
+          type="button"
+          aria-label="Adicionar novo dispositivo"
+          title="Adicionar novo dispositivo"
+          className="glass-card p-5 opacity-0 animate-fade-in-up group cursor-pointer flex flex-col items-center justify-center gap-2 min-h-[144px] transition-all duration-300 hover:scale-[1.02]"
+          style={{ animationDelay: "0s" }}
+        >
+          <PlusIcon
+            size={36}
+            className="transition-transform duration-300 ease-out group-hover:scale-125 text-[#64748b] group-hover:text-[#00e5a0]"
+          />
+          <span className="text-xs font-medium text-[#94a3b8] group-hover:text-white transition-colors duration-300">
+            Adicionar novo dispositivo
+          </span>
+        </button>
         {filteredDevices.map((device, i) => (
           <DeviceCard
             key={device.id}
             device={device}
             onToggle={toggleDevice}
-            delay={i}
+            delay={i + 1}
           />
         ))}
       </div>
