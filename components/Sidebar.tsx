@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -22,20 +23,68 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const collapsedByTimerRef = useRef(false);
+
+  const clearCollapseTimer = () => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => clearCollapseTimer();
+  }, []);
+
+  const handleMouseEnter = () => {
+    clearCollapseTimer();
+    collapsedByTimerRef.current = false;
+    setIsExpanded(true);
+  };
+
+  const handleMouseLeave = () => {
+    clearCollapseTimer();
+    collapsedByTimerRef.current = false;
+    setIsExpanded(false);
+  };
+
+  const handleMouseMove = () => {
+    if (collapsedByTimerRef.current) {
+      collapsedByTimerRef.current = false;
+      setIsExpanded(true);
+    }
+  };
+
+  const handleLinkClick = () => {
+    clearCollapseTimer();
+    collapsedByTimerRef.current = false;
+    collapseTimerRef.current = setTimeout(() => {
+      collapsedByTimerRef.current = true;
+      setIsExpanded(false);
+      collapseTimerRef.current = null;
+    }, 2000);
+  };
 
   return (
-    <aside className="sidebar">
+    <aside
+      className={`sidebar ${isExpanded ? "expanded" : ""}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
+    >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 mb-8">
+      <div className="flex items-center gap-3 px-1.5 mb-8 overflow-hidden">
         <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
+          className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center"
           style={{
             background: "linear-gradient(135deg, #00e5a0, #00b4d8)",
           }}
         >
           <EnergyIcon size={18} className="text-black" />
         </div>
-        <span className="text-lg font-bold text-white tracking-tight">
+        <span className="sidebar-label text-lg font-bold text-white tracking-tight">
           Automate
         </span>
       </div>
@@ -43,7 +92,7 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 flex flex-col gap-1">
         <p
-          className="text-xs font-semibold uppercase tracking-wider px-4 mb-2"
+          className="sidebar-label text-xs font-semibold uppercase tracking-wider px-3.5 mb-2"
           style={{ color: "#64748b" }}
         >
           Menu
@@ -58,10 +107,12 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              title={item.label}
+              onClick={handleLinkClick}
               className={`sidebar-link ${isActive ? "active" : ""}`}
             >
               <Icon size={20} />
-              <span>{item.label}</span>
+              <span className="sidebar-label">{item.label}</span>
             </Link>
           );
         })}
@@ -69,11 +120,12 @@ export default function Sidebar() {
 
       {/* User */}
       <div
-        className="flex items-center gap-3 px-4 py-3 rounded-xl mt-4"
+        className="flex items-center gap-3 px-1.5 py-2.5 rounded-xl mt-4 overflow-hidden"
         style={{ background: "rgba(255,255,255,0.03)" }}
       >
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
+          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-xs font-bold"
+          title={user?.name}
           style={{
             background: "linear-gradient(135deg, #00e5a0, #00b4d8)",
             color: "#0a0e1a",
@@ -81,7 +133,7 @@ export default function Sidebar() {
         >
           {user?.avatar}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="sidebar-label flex-1 min-w-0">
           <p className="text-sm font-medium text-white truncate">
             {user?.name}
           </p>
@@ -91,7 +143,7 @@ export default function Sidebar() {
         </div>
         <button
           onClick={logout}
-          className="text-xs font-medium"
+          className="sidebar-label text-xs font-medium shrink-0 pr-2 hover:text-white transition-colors"
           style={{ color: "#94a3b8" }}
         >
           Sair

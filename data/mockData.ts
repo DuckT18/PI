@@ -1,11 +1,29 @@
 // ─── Types ──────────────────────────────────────────────────────
+export type DeviceType =
+  | "light"
+  | "ac"
+  | "tv"
+  | "speaker"
+  | "camera"
+  | "lock"
+  | "sensor"
+  | "plug"
+  | "fan"
+  | "curtain"
+  | "portable";
+
+export type DeviceConnectionType = "wifi" | "bluetooth" | "dongle" | "other";
+
 export interface Device {
   id: string;
   name: string;
   room: string;
-  type: "light" | "ac" | "tv" | "speaker" | "camera" | "lock" | "sensor" | "plug" | "fan" | "curtain";
+  type: DeviceType;
   isOn: boolean;
   value?: string;
+  productCode?: string;
+  connectionType?: DeviceConnectionType;
+  pairedDevice?: string;
 }
 
 export interface Room {
@@ -60,6 +78,7 @@ export const rooms: Room[] = [
   { id: "bedroom", name: "Quarto", deviceCount: 3 },
   { id: "office", name: "Escritório", deviceCount: 2 },
   { id: "garage", name: "Garagem", deviceCount: 2 },
+  { id: "portable", name: "Portátil", deviceCount: 0 },
 ];
 
 // ─── Dispositivos ───────────────────────────────────────────────

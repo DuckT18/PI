@@ -10,6 +10,7 @@ import {
   type EnergySummary,
 } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
+import { MAX_FAVORITES, useFavorites } from "@/lib/favorites";
 import DeviceCard from "@/components/DeviceCard";
 import BarChart from "@/components/BarChart";
 import { SimpleActivityLog } from "@/components/ActivityLog";
@@ -32,6 +33,11 @@ export default function Home() {
   const { data: devices, setData: setDevices, error, reload } = useApi<Device[]>("/devices");
   const { data: energy } = useApi<EnergySummary>("/energy");
   const { data: recentActivity, reload: reloadActivity } = useApi<Activity[]>("/activity");
+  const {
+    favoriteIds,
+    favoriteDevices: favorites,
+    toggleFavorite,
+  } = useFavorites(devices);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!devices || !energy || !recentActivity) return <Loading />;
@@ -48,9 +54,6 @@ export default function Home() {
     setDevices((prev) => prev?.map((d) => (d.id === id ? updated : d)) ?? prev);
     reloadActivity();
   };
-
-  // Favorites: first 4 devices
-  const favorites = devices.slice(0, 4);
 
   return (
     <div className="min-h-screen p-6 md:p-8">
@@ -137,19 +140,32 @@ export default function Home() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-white">Dispositivos Favoritos</h2>
             <span className="text-xs font-medium" style={{ color: "#64748b" }}>
-              {onlineCount} ativos
+              {favorites.length}/{MAX_FAVORITES} favoritos
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            {favorites.map((device, i) => (
-              <DeviceCard
-                key={device.id}
-                device={device}
-                onToggle={toggleDevice}
-                delay={i + 5}
-              />
-            ))}
-          </div>
+          {favorites.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              {favorites.map((device, i) => (
+                <DeviceCard
+                  key={device.id}
+                  device={device}
+                  onToggle={toggleDevice}
+                  isFavorite={favoriteIds.includes(device.id)}
+                  onToggleFavorite={toggleFavorite}
+                  delay={i + 5}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card-static p-6 text-center">
+              <p className="text-sm font-medium text-white">
+                Nenhum dispositivo favorito selecionado
+              </p>
+              <p className="text-xs mt-1" style={{ color: "#64748b" }}>
+                Clique na estrela de até {MAX_FAVORITES} cards na tela Dispositivos para exibi-los aqui.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

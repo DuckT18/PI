@@ -26,6 +26,7 @@ const roomDefs = [
   ['garage', 'Garagem', '#ef4444', 8],
   ['entrance', 'Entrada', '#94a3b8', 0],
   ['hallway', 'Corredor', '#94a3b8', 0],
+  ['portable', 'Portátil', '#00e5a0', 0],
 ];
 const rooms = {};
 for (const [slug, name, color] of roomDefs) {

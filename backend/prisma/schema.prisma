@@ -25,6 +25,7 @@ enum DeviceType {
   fan
   curtain
   alarm
+  portable
 }
 
 enum EventType {
@@ -66,15 +67,17 @@ model Environment {
 }
 
 model Device {
-  id            String          @id @default(uuid())
-  name          String
-  type          DeviceType
-  isOn          Boolean         @default(false)
-  value         String? // texto exibido no card: "22°C", "Trancada", ...
-  environmentId String
-  environment   Environment     @relation(fields: [environmentId], references: [id], onDelete: Cascade)
-  events        Event[]
-  readings      EnergyReading[]
+  id             String          @id @default(uuid())
+  name           String
+  type           DeviceType
+  isOn           Boolean         @default(false)
+  value          String? // texto exibido no card: "22°C", "Trancada", ...
+  productCode    String?
+  connectionType String?
+  environmentId  String
+  environment    Environment     @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  events         Event[]
+  readings       EnergyReading[]
 
   @@index([environmentId])
 }

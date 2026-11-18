@@ -20,23 +20,23 @@ services:
     environment:
       DATABASE_URL: postgresql://automate:automate@db:5432/automate
       JWT_SECRET: dev-teste-1810
-      PORT: 3001
-      CORS_ORIGIN: http://localhost:3000
+      PORT: 3002
+      CORS_ORIGIN: http://localhost:3000,http://localhost:3003
       AUTO_OFF_MINUTES: 5
       TZ: America/Sao_Paulo
     ports:
-      - "3001:3001"
+      - "3002:3002"
 
   web:
     build:
       context: .
       args:
         # o navegador acessa a API pelo host, não pela rede do compose
-        NEXT_PUBLIC_API_URL: http://localhost:3001/api
+        NEXT_PUBLIC_API_URL: http://localhost:3002/api
     depends_on:
       - api
     ports:
-      - "3000:3000"
+      - "3003:3000"
 
 volumes:
   pgdata:

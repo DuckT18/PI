@@ -14,6 +14,7 @@ router.use(auth); // tudo abaixo exige JWT (RNE-002)
 router.get('/auth/me', authController.me); // Sidebar / Settings
 router.get('/rooms', dashboard.rooms); // filtro de cômodos
 router.get('/devices', devices.list); // Devices
+router.post('/devices', devices.create); // Criar dispositivo
 router.patch('/devices/:id', devices.update); // toggle (RF-002)
 router.get('/activity', devices.activity); // Home
 router.get('/energy', dashboard.energy); // Home / Energy

@@ -7,6 +7,6 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const port = process.env.PORT ?? 3001;
+const port = process.env.PORT ?? 3002;
 app.listen(port, () => console.log(`Automate API em http://localhost:${port}`));
 startAutoShutoffJob();

@@ -7,7 +7,7 @@ import type {
   SecurityEvent,
 } from "@/data/mockData";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002/api";
 
 const TOKEN_KEY = "automate_token";
 
@@ -105,6 +105,19 @@ export async function login(email: string, password: string): Promise<UserProfil
   setToken(token);
   return user;
 }
+
+export interface CreateDevicePayload {
+  name: string;
+  room: string;
+  type: Device["type"];
+  isOn?: boolean;
+  value?: string;
+  productCode?: string;
+  connectionType?: Device["connectionType"];
+}
+
+export const createDevice = (data: CreateDevicePayload) =>
+  api<Device>("/devices", { method: "POST", body: JSON.stringify(data) });
 
 export const updateDevice = (id: string, isOn: boolean) =>
   api<Device>(`/devices/${id}`, { method: "PATCH", body: JSON.stringify({ isOn }) });

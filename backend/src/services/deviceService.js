@@ -4,8 +4,38 @@ import { toDevice } from '../lib/serializers.js';
 import { timeAgo } from '../lib/time.js';
 
 // Texto de status [ligado, desligado] e tipo de evento gerado, por tipo de dispositivo.
-const LABELS = { lock: ['Trancada', 'Destrancada'], alarm: ['Armado', 'Desarmado'], camera: ['Gravando', 'Desligada'] };
+const LABELS = {
+  lock: ['Trancada', 'Destrancada'],
+  alarm: ['Armado', 'Desarmado'],
+  camera: ['Gravando', 'Desligada'],
+};
 const EVENT_TYPE = { lock: 'door', camera: 'camera', alarm: 'alarm' };
+
+const DEFAULT_VALUES = {
+  light: '100%',
+  ac: '23°C',
+  tv: 'Ligada',
+  speaker: 'Conectado',
+  camera: 'Gravando',
+  lock: 'Trancada',
+  sensor: 'Ativo',
+  plug: 'Ligada',
+  fan: 'Médio',
+  curtain: 'Aberta',
+};
+
+function resolvePortableValue(isOn, connectionType) {
+  if (!isOn) return 'Desl.';
+  if (connectionType === 'dongle') return 'Conectado • 2.4GHz';
+  if (connectionType === 'bluetooth') return 'Conectado • BT';
+  return 'Conectado';
+}
+
+function resolveDefaultValue(type, isOn, connectionType) {
+  if (!isOn) return 'Desl.';
+  if (type === 'portable') return resolvePortableValue(true, connectionType);
+  return DEFAULT_VALUES[type] ?? 'Ativo';
+}
 
 // "alarm" não existe no tipo Device do frontend; aparece só na tela Security.
 export async function list(userId) {
@@ -17,6 +47,53 @@ export async function list(userId) {
   return devices.map(toDevice);
 }
 
+export async function create(userId, { name, room, type, isOn = true, value, productCode, connectionType }) {
+  const env =
+    room === 'portable'
+      ? await prisma.environment.upsert({
+          where: { ownerId_slug: { ownerId: userId, slug: 'portable' } },
+          update: {},
+          create: { slug: 'portable', name: 'Portátil', color: '#00e5a0', ownerId: userId },
+        })
+      : await prisma.environment.findUnique({
+          where: { ownerId_slug: { ownerId: userId, slug: room } },
+        });
+
+  if (!env) throw new HttpError(404, 'Cômodo não encontrado');
+
+  const resolvedValue = value ?? resolveDefaultValue(type, isOn, connectionType);
+
+  const created = await prisma.$transaction(async (tx) => {
+    const device = await tx.device.create({
+      data: {
+        name,
+        type,
+        isOn,
+        value: resolvedValue,
+        productCode: productCode || null,
+        connectionType: connectionType || null,
+        environmentId: env.id,
+      },
+      include: { environment: true },
+    });
+
+    await tx.event.create({
+      data: {
+        userId,
+        deviceId: device.id,
+        type: EVENT_TYPE[type] ?? 'system',
+        status: 'success',
+        title: `${name} adicionado`,
+        description: `Novo dispositivo configurado em ${env.name}`,
+      },
+    });
+
+    return device;
+  });
+
+  return toDevice(created);
+}
+
 // RF-002: ligar/desligar. Cada ação vira um evento no histórico.
 export async function update(userId, id, { isOn, value }) {
   const device = await prisma.device.findFirst({
@@ -25,7 +102,10 @@ export async function update(userId, id, { isOn, value }) {
   });
   if (!device) throw new HttpError(404, 'Dispositivo não encontrado');
 
-  const label = LABELS[device.type]?.[isOn ? 0 : 1];
+  const label =
+    device.type === 'portable'
+      ? resolvePortableValue(isOn, device.connectionType)
+      : LABELS[device.type]?.[isOn ? 0 : 1];
   const ops = [
     prisma.device.update({
       where: { id },

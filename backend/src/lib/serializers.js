@@ -8,6 +8,8 @@ export const toDevice = (d) => ({
   type: d.type,
   isOn: d.isOn,
   value: d.value ?? undefined,
+  productCode: d.productCode ?? undefined,
+  connectionType: d.connectionType ?? undefined,
 });
 
 export const toSecurityDevice = (d) => ({
