@@ -47,7 +47,7 @@ export async function list(userId) {
   return devices.map(toDevice);
 }
 
-export async function create(userId, { name, room, type, isOn = true, value, productCode, connectionType }) {
+export async function create(userId, { name, room, type, isOn = true, value, productCode, connectionType, consumption }) {
   const env =
     room === 'portable'
       ? await prisma.environment.upsert({
@@ -76,6 +76,15 @@ export async function create(userId, { name, room, type, isOn = true, value, pro
       },
       include: { environment: true },
     });
+
+    if (typeof consumption === 'number' && consumption > 0) {
+      await tx.energyReading.create({
+        data: {
+          deviceId: device.id,
+          kwh: Number(consumption),
+        },
+      });
+    }
 
     await tx.event.create({
       data: {

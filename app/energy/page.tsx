@@ -1,24 +1,32 @@
 "use client";
 
+import { useState } from "react";
 import BarChart from "@/components/BarChart";
 import StatCard from "@/components/StatCard";
 import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
   EnergyIcon,
   TrendDownIcon,
   TipIcon,
 } from "@/components/icons";
 import { ErrorState, Loading } from "@/components/State";
 import { energyTips } from "@/data/mockData";
-import type { EnergySummary } from "@/lib/api";
+import { getMonthlySeries, type EnergySummary } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 
 export default function EnergyPage() {
   const { data, error, reload } = useApi<EnergySummary>("/energy");
+  const [chartPeriod, setChartPeriod] = useState<"weekly" | "monthly">("weekly");
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Loading />;
 
   const { weekly: weeklyEnergy, byRoom: energyByRoom, stats: energyStats } = data;
+  const monthlyEnergy = getMonthlySeries(data);
+  const isWeekly = chartPeriod === "weekly";
+  const toggleChartPeriod = () =>
+    setChartPeriod((prev) => (prev === "weekly" ? "monthly" : "weekly"));
   const savingsPercent = Math.round(
     ((energyStats.lastMonthKwh - energyStats.monthlyKwh) / energyStats.lastMonthKwh) * 100
   );
@@ -72,17 +80,49 @@ export default function EnergyPage() {
 
       {/* Two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Weekly Chart */}
-        <div className="glass-card-static p-6 opacity-0 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-          <div className="flex items-center justify-between mb-6">
+        {/* Weekly / Monthly Chart */}
+        <div
+          className="glass-card-static relative p-6 opacity-0 animate-fade-in-up"
+          style={{ animationDelay: "0.3s" }}
+        >
+          <button
+            type="button"
+            onClick={toggleChartPeriod}
+            aria-label={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            title={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-[#94a3b8] hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-10"
+          >
+            <ChevronLeftIcon size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={toggleChartPeriod}
+            aria-label={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            title={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-[#94a3b8] hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-10"
+          >
+            <ChevronRightIcon size={18} />
+          </button>
+
+          <div className="flex items-center justify-between mb-6 px-4">
             <div>
-              <h2 className="text-lg font-bold text-white">Consumo Semanal</h2>
+              <h2 className="text-lg font-bold text-white">
+                {isWeekly ? "Consumo Semanal" : "Consumo Mensal"}
+              </h2>
               <p className="text-xs mt-1" style={{ color: "#64748b" }}>
-                kWh por dia da semana
+                {isWeekly ? "kWh por dia da semana" : "kWh por semana do mês"}
               </p>
             </div>
+            <span className="text-2xl font-bold text-gradient">
+              {isWeekly ? energyStats.weeklyKwh : energyStats.monthlyKwh} kWh
+            </span>
           </div>
-          <BarChart data={weeklyEnergy} maxHeight={180} />
+          <div className="px-6">
+            <BarChart
+              data={isWeekly ? weeklyEnergy : monthlyEnergy}
+              maxHeight={180}
+            />
+          </div>
         </div>
 
         {/* Room Breakdown */}

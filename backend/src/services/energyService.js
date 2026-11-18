@@ -30,6 +30,12 @@ export async function summary(userId) {
     return { day: WEEKDAYS[from.getDay()], value: round(sum(between(from, daysAgo(5 - i)))) };
   });
 
+  const monthly = Array.from({ length: 4 }, (_, i) => {
+    const from = daysAgo(27 - i * 7);
+    const to = daysAgo(20 - i * 7);
+    return { day: `Sem ${i + 1}`, value: round(sum(between(from, to))) };
+  });
+
   const perRoom = new Map();
   for (const r of week) {
     const { name, color } = r.device.environment;
@@ -49,6 +55,7 @@ export async function summary(userId) {
   const lastMonthKwh = round(sum(lastMonth));
   return {
     weekly,
+    monthly,
     byRoom,
     stats: {
       todayKwh: weekly[6].value,

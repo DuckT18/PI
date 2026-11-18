@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/components/AppShell";
 import { ErrorState, Loading } from "@/components/State";
 import {
+  getMonthlySeries,
   updateDevice,
   type Activity,
   type Device,
@@ -15,6 +17,8 @@ import DeviceCard from "@/components/DeviceCard";
 import BarChart from "@/components/BarChart";
 import { SimpleActivityLog } from "@/components/ActivityLog";
 import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
   EnergyIcon,
   ShieldIcon,
   DevicesIcon,
@@ -33,6 +37,7 @@ export default function Home() {
   const { data: devices, setData: setDevices, error, reload } = useApi<Device[]>("/devices");
   const { data: energy } = useApi<EnergySummary>("/energy");
   const { data: recentActivity, reload: reloadActivity } = useApi<Activity[]>("/activity");
+  const [chartPeriod, setChartPeriod] = useState<"weekly" | "monthly">("weekly");
   const {
     favoriteIds,
     favoriteDevices: favorites,
@@ -43,6 +48,10 @@ export default function Home() {
   if (!devices || !energy || !recentActivity) return <Loading />;
 
   const { weekly: weeklyEnergy, stats: energyStats } = energy;
+  const monthlyEnergy = getMonthlySeries(energy);
+  const isWeekly = chartPeriod === "weekly";
+  const toggleChartPeriod = () =>
+    setChartPeriod((prev) => (prev === "weekly" ? "monthly" : "weekly"));
   const onlineCount = devices.filter((d) => d.isOn).length;
   const totalCount = devices.length;
 
@@ -119,20 +128,49 @@ export default function Home() {
 
       {/* Two columns: Chart + Favorites */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Weekly Energy */}
-        <div className="glass-card-static p-6 opacity-0 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-          <div className="flex items-center justify-between mb-6">
+        {/* Weekly / Monthly Energy */}
+        <div
+          className="glass-card-static relative p-6 opacity-0 animate-fade-in-up"
+          style={{ animationDelay: "0.3s" }}
+        >
+          <button
+            type="button"
+            onClick={toggleChartPeriod}
+            aria-label={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            title={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-[#94a3b8] hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-10"
+          >
+            <ChevronLeftIcon size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={toggleChartPeriod}
+            aria-label={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            title={isWeekly ? "Ver consumo mensal" : "Ver consumo semanal"}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-[#94a3b8] hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-10"
+          >
+            <ChevronRightIcon size={18} />
+          </button>
+
+          <div className="flex items-center justify-between mb-6 px-4">
             <div>
-              <h2 className="text-lg font-bold text-white">Consumo Semanal</h2>
+              <h2 className="text-lg font-bold text-white">
+                {isWeekly ? "Consumo Semanal" : "Consumo Mensal"}
+              </h2>
               <p className="text-xs mt-1" style={{ color: "#64748b" }}>
-                Últimos 7 dias
+                {isWeekly ? "Últimos 7 dias" : "Últimas 4 semanas"}
               </p>
             </div>
             <span className="text-2xl font-bold text-gradient">
-              {energyStats.weeklyKwh} kWh
+              {isWeekly ? energyStats.weeklyKwh : energyStats.monthlyKwh} kWh
             </span>
           </div>
-          <BarChart data={weeklyEnergy} maxHeight={140} />
+          <div className="px-6">
+            <BarChart
+              data={isWeekly ? weeklyEnergy : monthlyEnergy}
+              maxHeight={140}
+            />
+          </div>
         </div>
 
         {/* Favorite Devices */}

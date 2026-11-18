@@ -9,6 +9,7 @@ import {
   BluetoothIcon,
   CheckIcon,
   DongleIcon,
+  ExclamationCircleIcon,
   EyeIcon,
   EyeOffIcon,
   PlusIcon,
@@ -282,6 +283,8 @@ export default function NewDevicePage() {
   const [name, setName] = useState("");
   const [productCode, setProductCode] = useState("");
   const [showProductCode, setShowProductCode] = useState(true);
+  const [consumption, setConsumption] = useState("");
+  const [consumptionUnit, setConsumptionUnit] = useState<"kWh" | "W">("kWh");
   const [selectedRoom, setSelectedRoom] = useState<string>("");
   const [hasChosenRoom, setHasChosenRoom] = useState(false);
   const [connectionType, setConnectionType] =
@@ -346,6 +349,10 @@ export default function NewDevicePage() {
     setPairedDevice("");
     setFormError(null);
 
+    if (nextType === "portable") {
+      setConsumption("");
+    }
+
     if (nextType === "portable" && connectionType === "wifi") {
       setConnectionType("bluetooth");
     } else if (nextType !== "portable" && connectionType === "dongle") {
@@ -393,6 +400,22 @@ export default function NewDevicePage() {
       return;
     }
 
+    let parsedConsumptionKwh: number | undefined;
+    if (!isPortable) {
+      const rawConsumption = consumption.trim().replace(",", ".");
+      if (rawConsumption) {
+        const numeric = Number(rawConsumption);
+        if (Number.isNaN(numeric) || numeric < 0) {
+          setFormError("Informe um consumo de energia válido (valor numérico positivo).");
+          return;
+        }
+        parsedConsumptionKwh =
+          consumptionUnit === "W"
+            ? Math.round(((numeric * 8) / 1000) * 100) / 100
+            : Math.round(numeric * 100) / 100;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const created = await createDevice({
@@ -403,6 +426,7 @@ export default function NewDevicePage() {
         value: getDefaultDeviceValue(deviceType, initialIsOn, connectionType),
         productCode: productCode.trim() || undefined,
         connectionType,
+        consumption: parsedConsumptionKwh,
       });
       if (isFavorite) {
         markNewDeviceAsFavorite(created.id);
@@ -450,6 +474,14 @@ export default function NewDevicePage() {
       ? productCode.trim()
       : "•".repeat(Math.min(productCode.trim().length, 10))
     : "Não informado";
+
+  const rawNumericConsumption = Number(consumption.trim().replace(",", "."));
+  const summaryConsumption =
+    consumption.trim() && !Number.isNaN(rawNumericConsumption) && rawNumericConsumption >= 0
+      ? consumptionUnit === "W"
+        ? `${rawNumericConsumption} W (~${Math.round(((rawNumericConsumption * 8) / 1000) * 100) / 100} kWh/dia)`
+        : `${rawNumericConsumption} kWh/dia`
+      : "Não informado";
 
   return (
     <div className="min-h-screen p-6 md:p-8">
@@ -560,7 +592,9 @@ export default function NewDevicePage() {
               2. Informações do Dispositivo
             </h2>
             <p className="text-xs mb-5" style={{ color: "#64748b" }}>
-              Defina o nome, código de identificação e cômodo
+              {isPortable
+                ? "Defina o nome, código de identificação e cômodo"
+                : "Defina o nome, código de identificação, consumo e cômodo"}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
@@ -640,6 +674,104 @@ export default function NewDevicePage() {
                 </div>
               </div>
             </div>
+
+            {/* Energy Consumption Field */}
+            {!isPortable && (
+            <div className="mb-5">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <label
+                    htmlFor="device-consumption"
+                    className="block text-xs font-medium"
+                    style={{ color: "#94a3b8" }}
+                  >
+                    Consumo de Energia ({consumptionUnit === "kWh" ? "kWh/dia" : "Watts"})
+                  </label>
+                  <div className="relative group/info inline-flex items-center">
+                    <span
+                      tabIndex={0}
+                      aria-label="Verifique na etiqueta do produto o consumo de energia para preencher este campo."
+                      className="inline-flex items-center justify-center text-[#f59e0b] cursor-help focus:outline-none"
+                    >
+                      <ExclamationCircleIcon size={14} />
+                    </span>
+                    <div
+                      role="tooltip"
+                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 px-3 py-2 rounded-lg text-[11px] leading-relaxed opacity-0 group-hover/info:opacity-100 group-focus-within/info:opacity-100 transition-opacity duration-200 z-20 shadow-lg"
+                      style={{
+                        background: "#1e293b",
+                        color: "#f1f5f9",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      Verifique na etiqueta do produto o consumo de energia para preencher este campo.
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="inline-flex rounded-lg p-0.5 text-[11px] font-medium"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  {(["kWh", "W"] as const).map((unit) => (
+                    <button
+                      key={unit}
+                      type="button"
+                      onClick={() => setConsumptionUnit(unit)}
+                      className="px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                      style={{
+                        background:
+                          consumptionUnit === unit
+                            ? "rgba(0,229,160,0.18)"
+                            : "transparent",
+                        color: consumptionUnit === unit ? "#00e5a0" : "#94a3b8",
+                      }}
+                    >
+                      {unit}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative">
+                <input
+                  id="device-consumption"
+                  type="text"
+                  inputMode="decimal"
+                  value={consumption}
+                  onChange={(e) => {
+                    setConsumption(e.target.value);
+                    if (formError) setFormError(null);
+                  }}
+                  placeholder={
+                    consumptionUnit === "kWh" ? "Ex: 1.5" : "Ex: 120"
+                  }
+                  className="w-full rounded-xl pl-4 pr-16 py-3 text-sm text-white outline-none transition-colors focus:border-[#00e5a0]"
+                  style={fieldStyle}
+                />
+                <span
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium pointer-events-none"
+                  style={{ color: "#64748b" }}
+                >
+                  {consumptionUnit === "kWh" ? "kWh/dia" : "W"}
+                </span>
+              </div>
+
+              <p
+                className="flex items-center gap-1.5 text-[11px] mt-1.5"
+                style={{ color: "#94a3b8" }}
+              >
+                <ExclamationCircleIcon size={13} className="shrink-0 text-[#f59e0b]" />
+                <span>
+                  Verifique a etiqueta do produto para escrever o consumo
+                  {consumptionUnit === "W" ? " (estimativa com base em 8h/dia)" : ""}.
+                </span>
+              </p>
+            </div>
+            )}
 
             <div>
               <span
@@ -1165,6 +1297,9 @@ export default function NewDevicePage() {
                 { label: "Tipo", value: selectedTypeMeta.label },
                 { label: "Cômodo", value: selectedRoomLabel },
                 { label: "Código", value: maskedProductCode },
+                ...(!isPortable
+                  ? [{ label: "Consumo", value: summaryConsumption }]
+                  : []),
                 { label: "Conexão", value: CONNECTION_LABELS[connectionType] },
                 {
                   label:

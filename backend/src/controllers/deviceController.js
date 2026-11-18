@@ -21,6 +21,7 @@ const createSchema = z.object({
   value: z.string().optional(),
   productCode: z.string().trim().optional(),
   connectionType: z.enum(['wifi', 'bluetooth', 'dongle', 'other']).optional(),
+  consumption: z.number().nonnegative().optional(),
 });
 
 const updateSchema = z.object({ isOn: z.boolean(), value: z.string().optional() });
